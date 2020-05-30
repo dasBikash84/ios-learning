@@ -1,18 +1,29 @@
-//
-//  TodoItem.swift
-//  Todoey
-//
-//  Created by bikash on 30/5/20.
-//  Copyright © 2020 App Brewery. All rights reserved.
-//
 
 import Foundation
 
-struct TodoItem {
+struct TodoItem : Codable {
     var name : String
-    var checked : Bool
+    var checked : Bool = false
+    var time : Date = Date()
 }
 
-struct TodoItems {
+struct TodoItems : Codable {
     var items:[TodoItem] = []
 }
+
+struct CoderHelper {
+    static let encoder = PropertyListEncoder()
+    static let decoder = PropertyListDecoder()
+}
+
+extension Encodable{
+    func getEncodedData() -> Data?{
+        do{
+            return try CoderHelper.encoder.encode(self)
+        }catch{
+            print(error)
+            return nil
+        }
+    }
+}
+

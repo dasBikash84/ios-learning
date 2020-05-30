@@ -1,57 +1,59 @@
-//
-//  ViewController.swift
-//  Todoey
-//
-//  Created by Philipp Muellauer on 02/12/2019.
-//  Copyright © 2019 App Brewery. All rights reserved.
-//
 
 import UIKit
 
 class TodoListViewController: UITableViewController {
     
-    var itemArray:[String:Bool] = [:]
+    var itemArray: TodoItems = TodoItems()
     
     let defaults = UserDefaults.standard
-    let itemArrayKey = "TodoListViewController.itemArrayModelKey"
-
+    let itemArrayKey = "TodoListViewController.itemArrayByEncoderWithTsKey"
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
-        if let savedItems = defaults.object(forKey: itemArrayKey) as? [String:Bool]{
-            itemArray = savedItems
+        if let savedItems = defaults.data(forKey: itemArrayKey){
+            itemArray = try! CoderHelper.decoder.decode(TodoItems.self, from: savedItems)
             tableView.reloadData()
         }
+        
     }
-
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return itemArray.count
+        return itemArray.items.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell",for: indexPath)
         
-        let itemKey = Array(itemArray.keys)[indexPath.row]
+        let todoItem = itemArray.items[indexPath.row]
         
-        cell.textLabel?.text = itemKey
-        cell.accessoryType = itemArray[itemKey]! ? .checkmark : .none
+        cell.textLabel?.numberOfLines = 0
+        
+        cell.textLabel?.text = "\(todoItem.name) | \(todoItem.time) "
+        cell.accessoryType = todoItem.checked ? .checkmark : .none
         
         return cell
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+                
+        var item = itemArray.items[indexPath.row]
+        item.checked = !item.checked
         
-        let itemKey = Array(itemArray.keys)[indexPath.row]
-        itemArray[itemKey] = !itemArray[itemKey]!
+        itemArray.items[indexPath.row] = item
+        saveData()
         
-        tableView.cellForRow(at: indexPath)!.accessoryType = itemArray[itemKey]! ? .checkmark : .none
+        tableView.cellForRow(at: indexPath)!.accessoryType = item.checked ? .checkmark : .none
         
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
     //MARK: - Add new item
+    fileprivate func saveData() {
+        self.defaults.set(itemArray.getEncodedData(), forKey: self.itemArrayKey)
+    }
+    
     @IBAction func addItemBttonPressed(_ sender: UIBarButtonItem) {
         var alertTextField:UITextField?
         let alert = UIAlertController(title: "Add todo item", message: nil, preferredStyle: .alert)
@@ -59,9 +61,10 @@ class TodoListViewController: UITableViewController {
             print("Item entered")
             if let newItemName = alertTextField?.text{
                 print("New task name: \(newItemName)")
-                self.itemArray[newItemName] = false
+                self.itemArray.items.append(TodoItem(name: newItemName, checked: false))
+                
                 print(self.itemArray)
-                self.defaults.set(self.itemArray, forKey: self.itemArrayKey)
+                self.saveData()
                 self.tableView.reloadData()
             }
         }
