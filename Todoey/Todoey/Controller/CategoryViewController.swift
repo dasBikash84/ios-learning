@@ -1,66 +1,63 @@
-//
-//  CategoryViewController.swift
-//  Todoey
-//
-//  Created by bikash on 1/6/20.
-//  Copyright © 2020 App Brewery. All rights reserved.
-//
 
 import UIKit
 import CoreData
+import RealmSwift
+import SwipeCellKit
 
-class CategoryViewController: UITableViewController {
+class CategoryViewController: SwipableTableViewController {
     
-    var categories : [TodoCategory] = []
     
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    let realm = try! Realm()
+    var categories : Results<TodoCategory>?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        readData()
+        readData()        
     }
 
     // MARK: - Table view data source
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categories.count
+        return categories?.count ?? 1
     }
     
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        
-        let cell = tableView.dequeueReusableCell(withIdentifier: "categoryCell",for: indexPath)
-        
-        let category = categories[indexPath.row]
-        
-        cell.textLabel?.numberOfLines = 0
-        
-        cell.textLabel?.text = "\(category.name!)"
-        return cell
+    override func getCellIdentifier() -> String {
+        return "categoryCell"
+    }
+    
+    override func setCellData(cell: SwipeTableViewCell, index: Int) {
+        let category = categories?[index]
+        cell.textLabel?.text = category?.name ?? "No category found"
+    }
+    
+    override func deleteAction(index: Int) {
+        try! realm.write{
+            self.realm.delete(categories![index])
+        }
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let selectedCategory = categories[indexPath.row]
+        let selectedCategory = categories?[indexPath.row]
         performSegue(withIdentifier: "gotoTodoView", sender: self)
     }
     
     //MARK: - Add new item
-    fileprivate func saveData() {
-        try! context.save()
+    fileprivate func saveData(_ category:TodoCategory) {
+        try! realm.write{
+            realm.add(category)
+        }
+        tableView.reloadData()
     }
     
     func readData(){
-        let request : NSFetchRequest<TodoCategory> = TodoCategory.fetchRequest()
-        categories = try! context.fetch(request)
+        categories = realm.objects(TodoCategory.self)
         tableView.reloadData()
     }
     
     func addNewCategory(_ name:String){
-        let category = TodoCategory(context : self.context)
+        let category = TodoCategory()
         category.name = name
-        self.saveData()
-        self.categories.append(category)
-        print(self.categories)
-        self.tableView.reloadData()
+        saveData(category)
     }
 
     @IBAction func addCategoryButtonPressed(_ sender: UIBarButtonItem) {
@@ -86,7 +83,7 @@ class CategoryViewController: UITableViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let destinationVc = segue.destination as! TodoListViewController
         if let indexPath = tableView.indexPathForSelectedRow{
-            destinationVc.selectedCategory = categories[indexPath.row]
+            destinationVc.selectedCategory = categories?[indexPath.row]
         }
     }
 }

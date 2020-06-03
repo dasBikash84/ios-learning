@@ -1,15 +1,18 @@
 
 import Foundation
+import RealmSwift
 
-//struct TodoItem : Codable {
-//    var name : String
-//    var done : Bool = false
-//    var time : Date = Date()
-//}
+class TodoItem : Object {
+    @objc dynamic var name : String = ""
+    @objc dynamic var done : Bool = false
+    @objc dynamic var time : Date = Date()
+    var parentCategory = LinkingObjects(fromType: TodoCategory.self, property : "items")
+}
 
-//struct TodoItems : Codable {
-//    var items:[TodoItem] = []
-//}
+class TodoCategory : Object {
+    @objc dynamic var name : String = ""
+    let items = List<TodoItem>()
+}
 
 struct CoderHelper {
     static let encoder = PropertyListEncoder()
